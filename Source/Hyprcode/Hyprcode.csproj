@@ -15,4 +15,10 @@
     <PackageReference Include="SDL3-CS.Linux" Version="3.4.12.1" />
   </ItemGroup>
 
+  <ItemGroup>
+    <EmbeddedResource Include="../../Resources/lucide.ttf" Link="Resources/lucide.ttf">
+      <LogicalName>lucide.ttf</LogicalName>
+    </EmbeddedResource>
+  </ItemGroup>
+
 </Project>
