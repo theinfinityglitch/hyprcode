@@ -4,6 +4,7 @@ using System.Runtime.InteropServices;
 using System.Text;
 using Hexa.NET.ImGui;
 using Hexa.NET.ImGui.Backends.SDL3;
+using Hyprcode.Editor;
 using Hyprcode.Explorer;
 using Hyprcode.ProjectModel;
 using Hyprcode.ProjectModel.Parsing;
@@ -20,6 +21,8 @@ internal static class Program
     private static DotnetSolution? currentSolution;
     private static List<ExplorerNode> explorerRoots = [];
     private static string? selectedFilePath;
+    private static readonly List<EditorBuffer> openBuffers = [];
+    private static string? activeEditorPath;
     private static string openPathBuffer = "";
     private static string? openError;
 
@@ -68,11 +71,15 @@ internal static class Program
             4.0f * SDL.GetWindowDisplayScale(window)
         );
         style.TabRounding = 0.0f;
+        style.WindowMenuButtonPosition = ImGuiDir.None;
         var io = ImGui.GetIO();
         io.ConfigFlags |= ImGuiConfigFlags.DockingEnable;
 
         ConfigureIniPath(io);
         ApplyDpiScale(window, updateBackend: false);
+
+        ProjectExplorerPanel.FileSelected += OpenFile;
+        EditorPanel.ActiveFileChanged += path => selectedFilePath = path;
 
         ImGuiImplSDL3.SetCurrentContext(ImGui.GetCurrentContext());
 
@@ -158,6 +165,12 @@ internal static class Program
                         requestOpenSolutionDialog = true;
                         openError = null;
                     }
+
+                    if (ImGui.MenuItem("Save", "Ctrl+S"))
+                    {
+                        openBuffers.FirstOrDefault(b => b.Path == activeEditorPath)?.Save();
+                    }
+
                     ImGui.EndMenu();
                 }
                 ImGui.EndMainMenuBar();
@@ -168,11 +181,8 @@ internal static class Program
 
             DrawOpenPathPopup();
 
-            ProjectExplorerPanel.Draw(
-                explorerRoots,
-                path => selectedFilePath = path,
-                selectedFilePath
-            );
+            ProjectExplorerPanel.Draw(explorerRoots, selectedFilePath);
+            EditorPanel.Draw(openBuffers, ref activeEditorPath);
             DrawDetailsPanel();
 
             ImGui.Render();
@@ -189,6 +199,16 @@ internal static class Program
         SDL.DestroyWindow(window);
 
         SDL.Quit();
+    }
+
+    private static void OpenFile(string path)
+    {
+        if (openBuffers.All(b => b.Path != path))
+        {
+            openBuffers.Add(EditorBuffer.Load(path));
+        }
+
+        EditorPanel.RequestFocus(path);
     }
 
     private static void DrawOpenPathPopup()

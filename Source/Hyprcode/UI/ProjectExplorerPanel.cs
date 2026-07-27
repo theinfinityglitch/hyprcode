@@ -6,11 +6,9 @@ namespace Hyprcode.UI;
 
 public static class ProjectExplorerPanel
 {
-    public static void Draw(
-        IReadOnlyList<ExplorerNode> roots,
-        Action<string> onFileSelected,
-        string? selectedPath
-    )
+    public static event Action<string>? FileSelected;
+
+    public static void Draw(IReadOnlyList<ExplorerNode> roots, string? selectedPath)
     {
         ImGui.Begin("Explorer");
 
@@ -21,16 +19,12 @@ public static class ProjectExplorerPanel
         }
         else
             foreach (ExplorerNode root in roots)
-                DrawNode(root, onFileSelected, selectedPath);
+                DrawNode(root, selectedPath);
 
         ImGui.End();
     }
 
-    private static void DrawNode(
-        ExplorerNode node,
-        Action<string> onFileSelected,
-        string? selectedPath
-    )
+    private static void DrawNode(ExplorerNode node, string? selectedPath)
     {
         ImGui.PushID(node.Id);
 
@@ -54,7 +48,7 @@ public static class ProjectExplorerPanel
             bool clicked = ImGui.IsItemClicked();
 
             if (clicked && node.Kind == ExplorerNodeKind.File && node.Path != null)
-                onFileSelected(node.Path);
+                FileSelected?.Invoke(node.Path);
 
             if (node.Path != null && ImGui.IsItemHovered())
                 ImGui.SetTooltip(node.Path);
@@ -74,7 +68,7 @@ public static class ProjectExplorerPanel
         if (open)
         {
             foreach (ExplorerNode child in node.Children)
-                DrawNode(child, onFileSelected, selectedPath);
+                DrawNode(child, selectedPath);
 
             ImGui.TreePop();
         }
